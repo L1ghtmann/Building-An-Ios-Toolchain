@@ -1,14 +1,14 @@
 # How to build an iOS toolchain (on/for Linux)
 
-In order to build for Apple platforms (iOS, MacOS, tvOS, etc), you need an environment that provides the relevant software developement and support tools. On MacOS, Apple provides this environment through its [XCode](https://developer.apple.com/xcode/whats-new/) app. On other platforms, however, we have to create said environment ourselves (see [Theos](https://github.com/theos/theos) and [Dragon](https://github.com/dragonbuild/dragon)).
+In order to build for Apple platforms (iOS, MacOS, tvOS, etc), you need an environment that provides the relevant software development and support tools. On MacOS, Apple provides this environment through its [XCode](https://developer.apple.com/xcode/whats-new/) app. On other platforms, however, we have to create said environment ourselves (see [Theos](https://github.com/theos/theos) and [Dragon](https://github.com/dragonbuild/dragon)).
 
-Arguably the most integral item in one's developement environment is the toolchain -- a set of tools used to aid your R&D process -- which is ultimately responsible for the creation of your software product(s). With the growing list of developement tools, it can be daunting and laborious to find, build, and compile the necessary ones, especially when many of the necessary tools are made from separate entities with different documentation habits. This guide aims to concentrate some of that information to (hopefully) make the process of building and compiling an iOS toolchain clear and concise.
+Arguably the most integral item in one's development environment is the toolchain -- a set of tools used to aid your R&D process -- which is ultimately responsible for the creation of your software product(s). With the growing list of development tools, it can be daunting and laborious to find, build, and compile the necessary ones, especially when many of the necessary tools are made from separate entities with different documentation habits. This guide aims to concentrate some of that information to (hopefully) make the process of building and compiling an iOS toolchain clear and concise.
 
 ---
 
 ## The expected result
 
-Our toolchain is primarily targeting iOS tweak developement and will contain the following: `llvm`, `clang`, `ldid`, `tapi`, `libtapi`, and `cctools-port`, though other tools (from LLVM or a third party) can be added as needed.
+Our toolchain is primarily targeting iOS tweak development and will contain the following: `llvm`, `clang`, `ldid`, `tapi`, `libtapi`, and `cctools-port`, though other tools (from LLVM or a third party) can be added as needed.
 
 **Note:** Unless another target is specified explicitly prior to building (i.e., you want to [cross compile](https://llvm.org/docs/HowToCrossCompileLLVM.html)), the aforementioned tools will be built targeting the host system's [triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple) (e.g., `x86_64-unknown-linux-gnu` for my machine running [WSL](https://docs.microsoft.com/en-us/windows/wsl/about)).
 
@@ -45,7 +45,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 * If you have 8gb of ram or less, you’ll want to switch the linker in the cmake command below to either `gold` or `lld` (`-DLLVM_USE_LINKER=<linker>`) as they use less memory than the default linker `ld`.
 
-* If you've switch the linker and still manage to encounter something similar to the following: “collect2: fatal error: ld terminated with signal 9 [Killed] compilation terminated” after running the make install command below, your jobs are still using too much memory. To resolve this, try running `make install` (i.e., a single job). If that still doesn't do it, take a look at the last two links in the 'Resouces' section below.
+* If you've switched the linker and still manage to encounter something similar to the following: “collect2: fatal error: ld terminated with signal 9 [Killed] compilation terminated” after running the make install command below, your jobs are using too much memory. To resolve this, try running `make install` (i.e., a single job). If that still doesn't do it, take a look at the last two links in the 'Resources' section below.
 
 ### The commands:
 
@@ -80,7 +80,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ---
 
-## 4. cctools-port w/ tapi support
+## 4. cctools-port w/ TAPI support
 
     git clone https://github.com/tpoechtrager/apple-libtapi
     mkdir cctools && cd apple-libtapi
