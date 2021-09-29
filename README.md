@@ -25,6 +25,9 @@ Our toolchain is primarily targeting iOS tweak development and will contain the 
     # Clang+LLVM
     sudo apt-get install python3
 
+    # ldid
+    sudo apt-get install libplist-dev libssl-dev pkg-config
+
     # cctools-port
     sudo apt-get install clang
 
@@ -97,14 +100,24 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ### The commands:
 
-    git clone https://github.com/xerub/ldid
+    git clone --recursive https://github.com/sbingner/ldid
     cd ldid
-    ./make.sh
-    mv ldid2 $HOME/my-toolchain/bin/ldid && cd
+    make
+    mv ldid $HOME/my-toolchain/bin/ && cd
+
+
+**Note:** If you are met with a ton of undefined reference errors upon running `make`, change the following in the Makefile:
+
+    $(CXX) $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
+
+to
+
+    $(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 ### Resources:
 
-* https://github.com/xerub/ldid#readme
+* https://github.com/sbingner/ldid
+* https://git.saurik.com/ldid.git
 
 ---
 
