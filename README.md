@@ -28,9 +28,6 @@ Our toolchain is primarily targeting iOS tweak development and will contain the 
     # ldid
     sudo apt-get install libplist-dev libssl-dev pkg-config
 
-    # cctools-port
-    sudo apt-get install clang
-
 **Note:** `build-essential` or the equivalent for your distro.
 
 ### Create a centralized directory:
@@ -67,7 +64,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ### The flags explained:
 
-`-G "Unix Makefiles"` tells CMake to use the "Unix Makefiles" generator. [From Wikipedia](https://en.wikipedia.org/wiki/CMake): *"CMake is not a build system but rather it generates another system's build files."*
+`-G "Unix Makefiles"` tells CMake to use the Makefile generator. [From Wikipedia](https://en.wikipedia.org/wiki/CMake): *"CMake is not a build system but rather it generates another system's build files."*
 
 `-DLLVM_ENABLE_PROJECTS=clang` specifies that we want to build `clang` alongside `llvm` as a sub-project.
 
@@ -102,17 +99,8 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
     git clone --recursive https://github.com/sbingner/ldid
     cd ldid
-    make
-    mv ldid $HOME/my-toolchain/bin/ && cd
-
-
-**Note:** If you are met with a ton of undefined reference errors upon running `make`, change the following in the Makefile:
-
-    $(CXX) $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
-
-to
-
-    $(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+    make DESTDIR="$HOME/my-toolchain/" PREFIX="" install
+    cd
 
 ### Resources:
 
@@ -135,15 +123,14 @@ to
     # TAPI
     git clone https://github.com/tpoechtrager/apple-libtapi
     mkdir cctools && cd apple-libtapi
-    ./build.sh
-    export INSTALLPREFIX="$HOME/cctools/" && ./install.sh && cd
+    INSTALLPREFIX="$HOME/cctools/" ./build.sh
+    ./install.sh && cd
 
     # cctools-port
     git clone https://github.com/tpoechtrager/cctools-port
     cd cctools-port/cctools
-    ./configure --prefix="$HOME/cctools/" --enable-tapi-support --with-libtapi="$HOME/cctools/"
-    make -j"$(nproc --all)"
-    make install
+    ./configure --prefix="$HOME/cctools/" --enable-tapi-support --with-libtapi="$HOME/cctools/" CC="$HOME/my-toolchain/bin/clang" CXX="$HOME/my-toolchain/bin/clang++"
+    make -j"$(nproc --all)" install
     cd && cp -a $HOME/cctools/* $HOME/my-toolchain/
 
 ### Resources:
