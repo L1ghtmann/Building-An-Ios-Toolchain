@@ -51,7 +51,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 	after running the make install command below, your jobs are still using too much memory. To resolve this, try running `make install` (i.e., a single job).
 
-	- If that still doesn't do it, take a look at the last two links in the [resources](#clang+llvm-resources) section below.
+	- If that still doesn't do it, take a look at the last two links in the [resources](#clangllvm-resources) section below.
 
 ### The commands:
 
