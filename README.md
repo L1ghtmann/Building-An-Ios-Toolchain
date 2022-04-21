@@ -8,7 +8,7 @@ Arguably the most integral item in one's development environment is the toolchai
 
 ## The expected result
 
-Our toolchain is primarily targeting iOS tweak development and will contain the following: `llvm`, `clang`, `ldid`, `tapi`, `libtapi`, and `cctools-port`, though other tools (from LLVM or a third party) can be added as needed.
+Our toolchain is primarily targeting iOS tweak development and will contain the following: `llvm`, `clang`, `ldid`, `libtapi`, and `cctools-port`, though other projects (from LLVM or a third party) can be added as desired.
 
 **Note:** Unless another target is specified explicitly prior to building (i.e., you want to [cross compile](https://llvm.org/docs/HowToCrossCompileLLVM.html)), the aforementioned tools will be built for use on the host system's [architecture](https://llvm.org/doxygen/classllvm_1_1Triple.html#a547abd13f7a3c063aa72c8192a868154) and [triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple) (e.g., `x86_64` and `x86_64-unknown-linux-gnu` for my machine running [WSL](https://docs.microsoft.com/en-us/windows/wsl/about)).
 
@@ -17,28 +17,21 @@ Our toolchain is primarily targeting iOS tweak development and will contain the 
 ---
 
 ## 1. Preliminary Setup
-### Install build dependencies:
+### Install necessary dependencies:
 
-    # General
-    sudo apt-get install build-essential cmake coreutils git make
+	sudo apt-get install build-essential cmake coreutils git libplist-dev libssl-dev make pkg-config python3
 
-    # Clang+LLVM
-    sudo apt-get install python3
-
-    # ldid
-    sudo apt-get install libplist-dev libssl-dev pkg-config
-
-**Note:** `build-essential` or the equivalent for your distro.
+**Note:** These dependencies are for Debian-based distros. For other distros, you'll need to determine the equivalent packages.
 
 ### Create a centralized directory:
 
-    mkdir -p $HOME/my-toolchain/
+	mkdir -p $HOME/my-toolchain/
 
 ### Avoid possible conflicts:
 
 If you've explicitly set `$LD_LIBRARY_PATH` and/or `$PATH` in your shell's profile, comment their declarations out (add "#" in front of the relevant lines) and restart your shell.
 
-This is necessary because your other lib and bin paths may be prioritized over the default paths which contain the packages we just installed (depending on how you set the aforementioned variables). This prioritization has the potential to cause issues during compilation, so we're being proactive.
+This is necessary because your other lib and bin paths may be prioritized over the default paths which contain the tools we'll be using (depending on how you set the aforementioned variables). This prioritization has the potential to cause issues during compilation, so we're being proactive.
 
 ---
 
@@ -52,15 +45,21 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 * If you have 8gb of ram or less, you’ll want to switch the linker in the cmake command below to either `gold` or `lld` (`-DLLVM_USE_LINKER=<linker>`) as they use less memory than the default linker `ld`.
 
-* If you've switched the linker and manage to encounter something similar to the following: “collect2: fatal error: ld terminated with signal 9 [Killed] compilation terminated” after running the make install command below, your jobs are still using too much memory. To resolve this, try running `make install` (i.e., a single job). If that still doesn't do it, take a look at the last two links in the 'Resources' section below.
+* If you've switched the linker and manage to encounter something similar to the following:
+
+	> collect2: fatal error: ld terminated with signal 9 [Killed] compilation terminated.
+
+	after running the make install command below, your jobs are still using too much memory. To resolve this, try running `make install` (i.e., a single job).
+
+	- If that still doesn't do it, take a look at the last two links in the [resources](#clang+llvm-resources) section below.
 
 ### The commands:
 
-    git clone https://github.com/apple/llvm-project
-    mkdir my-llvm-project && cd llvm-project && mkdir build && cd build
-    cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang -DLLVM_LINK_LLVM_DYLIB=On -DLLVM_ENABLE_WARNINGS=Off -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" ../llvm
-    make -j"$(nproc --all)" install
-    cd && mv $HOME/my-llvm-project/* $HOME/my-toolchain/
+	git clone https://github.com/apple/llvm-project
+	mkdir my-llvm-project && cd llvm-project && mkdir build && cd build
+	cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang -DLLVM_LINK_LLVM_DYLIB=On -DLLVM_ENABLE_WARNINGS=Off -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" ../llvm
+	make -j"$(nproc --all)" install
+	cd && mv $HOME/my-llvm-project/* $HOME/my-toolchain/
 
 ### The flags explained:
 
@@ -70,15 +69,15 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 `-DLLVM_LINK_LLVM_DYLIB=On` specifies that we want to build the `libLLVM` shared library and dynamically link it into all the tools we're about to build. This helps shrink the size of our compiler *significantly*.
 
-`-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64"` specifies that we want our compiler to support the x86, ARM, and AArch64 architecture families. By default, this flag is set to `all` which integrates support (i.e., builds a backend) for AArch64, AMDGPU, ARM, AVR, BPF, Hexagon, Lanai, Mips, MSP430, NVPTX, PowerPC, RISCV, Sparc, SystemZ, WebAssembly, X86, and XCore ([source](https://github.com/apple/llvm-project/blob/0c93705f060d7e0b8932d58c1fd6291dd6a3f5a9/llvm/CMakeLists.txt#L303)) most of which we will never use. In practice, we only need ARM, but having support for x86 and AArch64 won't hurt and they're the only other architectures in that list that you're likely to encounter with modern Apple hardware.
+`-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64"` specifies that we want our compiler to support the x86, ARM, and AArch64 architecture families. By default, this flag is set to `all` which integrates support (i.e., builds a backend) for AArch64, AMDGPU, ARM, AVR, BPF, Hexagon, Lanai, Mips, MSP430, NVPTX, PowerPC, RISCV, Sparc, SystemZ, WebAssembly, X86, and XCore ([source](https://github.com/apple/llvm-project/blob/0c93705f060d7e0b8932d58c1fd6291dd6a3f5a9/llvm/CMakeLists.txt#L303)) most of which we'll never use. In practice, we only need AArch64 and ARM (64-bit and 32-bit arm respectively), but having support for the x86 family won't hurt and it's the only other architecture set in that list that you're likely to target (for other projects, etc).
 
 `-DLLVM_ENABLE_WARNINGS=Off` specifies that we want to disable all compiler warnings. Trust me, they will get annoying. If something fails, it may be worth removing this flag to turn warnings back on.
 
-`-DCMAKE_BUILD_TYPE=MinSizeRel` specifies that we want a Release build optimized for size, not speed.
+`-DCMAKE_BUILD_TYPE=MinSizeRel` specifies that we want a release build optimized for size, not speed.
 
 `-DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/"` specifies where we want our compiler to be installed once it's been built.
 
-### Resources:
+### Clang+LLVM resources:
 
 * https://llvm.org/docs/CMake.html
 * https://github.com/apple/llvm-project#readme
@@ -97,12 +96,12 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ### The commands:
 
-    git clone --recursive https://github.com/sbingner/ldid
-    cd ldid
-    make DESTDIR="$HOME/my-toolchain/" PREFIX="" install
-    cd
+	git clone --recursive https://github.com/sbingner/ldid
+	cd ldid
+	make DESTDIR="$HOME/my-toolchain/" PREFIX="" install
+	cd
 
-### Resources:
+### ldid resources:
 
 * https://github.com/sbingner/ldid
 * https://git.saurik.com/ldid.git
@@ -120,29 +119,29 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ### The commands:
 
-    # TAPI
-    git clone https://github.com/tpoechtrager/apple-libtapi
-    mkdir cctools && cd apple-libtapi
-    INSTALLPREFIX="$HOME/cctools/" ./build.sh
-    ./install.sh && cd
+	git clone https://github.com/tpoechtrager/apple-libtapi
+	mkdir cctools && cd apple-libtapi
+	INSTALLPREFIX="$HOME/cctools/" ./build.sh
+	./install.sh && cd
 
-    # cctools-port
-    git clone https://github.com/tpoechtrager/cctools-port
-    cd cctools-port/cctools
-    ./configure --prefix="$HOME/cctools/" --enable-tapi-support --with-libtapi="$HOME/cctools/" CC="$HOME/my-toolchain/bin/clang" CXX="$HOME/my-toolchain/bin/clang++"
-    make -j"$(nproc --all)" install
-    cd && cp -a $HOME/cctools/* $HOME/my-toolchain/
+	git clone https://github.com/tpoechtrager/cctools-port
+	cd cctools-port/cctools
+	./configure --prefix="$HOME/cctools/" --enable-tapi-support --with-libtapi="$HOME/cctools/" CC="$HOME/my-toolchain/bin/clang" CXX="$HOME/my-toolchain/bin/clang++"
+	make -j"$(nproc --all)" install
+	cd && cp -a $HOME/cctools/* $HOME/my-toolchain/
 
-### Resources:
+### cctools-port/libtapi resources:
 
 * https://github.com/tpoechtrager/apple-libtapi#readme
 * https://github.com/tpoechtrager/cctools-port#readme
 
 ---
 
-## 5. Final Touches
+## 5. Final touches
 
 Uncomment your previously commented out `$LD_LIBRARY_PATH` and/or `$PATH` declarations from your shell's profile and restart your shell.
+
+Remove any or all the intermediate directories created during the compilation processes (e.g., my-llvm-project).
 
 Lastly, move the contents of `$HOME/my-toolchain/` to the desired location.
 
