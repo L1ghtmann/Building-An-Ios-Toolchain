@@ -141,7 +141,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 Uncomment your previously commented out `$LD_LIBRARY_PATH` and/or `$PATH` declarations from your shell's profile and restart your shell.
 
-Remove any or all the intermediate directories created during the compilation processes (e.g., my-llvm-project).
+Remove some or all of the intermediate directories created during the compilation processes (e.g., my-llvm-project) that are no longer useful.
 
 Lastly, move the contents of `$HOME/my-toolchain/` to the desired location.
 
