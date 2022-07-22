@@ -62,7 +62,6 @@ This is necessary because your other lib and bin paths may be prioritized over t
 		-DLLVM_ENABLE_Z3_SOLVER=OFF \
 		-DLLVM_ENABLE_BINDINGS=OFF \
 		-DLLVM_ENABLE_WARNINGS=OFF \
-		-DLLVM_ENABLE_LTO=ON \
 		-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" \
@@ -78,13 +77,11 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 `-DLLVM_LINK_LLVM_DYLIB=ON` specifies that we want to build the `libLLVM` shared library and dynamically link it into all the tools we're about to build. This helps shrink the size of our compiler *significantly*.
 
-`DLLVM_ENABLE_Z3_SOLVER=OFF` specifies that we want to disable the Z3 constraint solver provided by the Clang static analyzer (thus avoiding yet another dependency).
+`-DLLVM_ENABLE_Z3_SOLVER=OFF` specifies that we want to disable the Z3 constraint solver provided by the Clang static analyzer (thus avoiding yet another dependency).
 
 `-DLLVM_ENABLE_BINDINGS=OFF` specifies that we don't want to support bindings for other languages (e.g., go and OCaml).
 
 `-DLLVM_ENABLE_WARNINGS=OFF` specifies that we want to disable all compiler warnings. Trust me, they will get annoying. If something fails, it may be worth removing this flag to turn warnings back on.
-
-`-DLLVM_ENABLE_LTO=ON` specifies that we want to enable [link-time optimization](https://johanengelen.github.io/ldc/2016/11/10/Link-Time-Optimization-LDC.html).
 
 `-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64"` specifies that we want our compiler to support the x86, ARM, and AArch64 architecture families. By default, this flag is set to `all` which integrates support (i.e., builds a backend) for AArch64, AMDGPU, ARM, AVR, BPF, Hexagon, Lanai, Mips, MSP430, NVPTX, PowerPC, RISCV, Sparc, SystemZ, WebAssembly, X86, and XCore ([source](https://github.com/apple/llvm-project/blob/0c93705f060d7e0b8932d58c1fd6291dd6a3f5a9/llvm/CMakeLists.txt#L303)) most of which we'll never use. In practice, we only need AArch64 and ARM (64-bit and 32-bit arm respectively), but having support for the x86 family won't hurt and it's the only other architecture set in that list that you're likely to target (for other projects, etc).
 
