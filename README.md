@@ -138,7 +138,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 	git clone https://github.com/tpoechtrager/cctools-port
 	cd cctools-port/cctools
-	./configure --prefix="$HOME/cctools/" --enable-tapi-support --with-libtapi="$HOME/cctools/" CC="$HOME/my-toolchain/bin/clang" CXX="$HOME/my-toolchain/bin/clang++"
+	./configure --prefix="$HOME/cctools/" --target=aarch64-apple-darwin14 --enable-tapi-support --with-libtapi="$HOME/cctools/" --program-transform-name="s/^aarch64-apple-darwin14-//" CC="$HOME/my-toolchain/bin/clang" CXX="$HOME/my-toolchain/bin/clang++"
 	make -j$(nproc --all) install
 	cd && cp -a $HOME/cctools/* $HOME/my-toolchain/
 
