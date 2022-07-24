@@ -19,7 +19,16 @@ Our toolchain is primarily targeting iOS tweak development and will contain the 
 ## 1. Preliminary Setup
 ### Install necessary dependencies:
 
-	sudo apt install build-essential cmake coreutils git libplist-dev libssl-dev make pkg-config python3 zlib1g-dev
+	sudo apt install build-essential \
+		cmake \
+		coreutils \
+		git \
+		libplist-dev \
+		libssl-dev \
+		make \
+		pkg-config \
+		python3 \
+		zlib1g-dev
 
 **Note:** These dependencies are for Debian-based distros. For other distros, you'll need to determine the equivalent packages.
 
@@ -138,7 +147,13 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 	git clone https://github.com/tpoechtrager/cctools-port
 	cd cctools-port/cctools
-	./configure --prefix="$HOME/cctools/" --target=aarch64-apple-darwin14 --enable-tapi-support --with-libtapi="$HOME/cctools/" --program-transform-name="s/^aarch64-apple-darwin14-//" CC="$HOME/my-toolchain/bin/clang" CXX="$HOME/my-toolchain/bin/clang++"
+	./configure --prefix="$HOME/cctools/" \
+		--target=aarch64-apple-darwin14 \
+		--enable-tapi-support \
+		--with-libtapi="$HOME/cctools/" \
+		--program-transform-name="s/^aarch64-apple-darwin14-//" \
+		CC="$HOME/my-toolchain/bin/clang" \
+		CXX="$HOME/my-toolchain/bin/clang++"
 	make -j$(nproc --all) install
 	cd && cp -a $HOME/cctools/* $HOME/my-toolchain/
 
