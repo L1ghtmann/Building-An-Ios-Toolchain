@@ -119,7 +119,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 	git clone --recursive https://github.com/sbingner/ldid
 	cd ldid
-	make DESTDIR="$HOME/my-toolchain/" PREFIX="" install
+	make -j$(nproc --all) DESTDIR="$HOME/my-toolchain/" PREFIX="" install
 	cd
 
 ### ldid resources:
