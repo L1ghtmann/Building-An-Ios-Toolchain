@@ -8,7 +8,7 @@ Arguably the most integral item in one's development environment is the toolchai
 
 ## The expected result
 
-Our toolchain is primarily targeting iOS tweak development and will contain the following: `llvm`, `clang`, `ldid`, `libtapi`, and `cctools-port`, though other projects (from LLVM or a third party) can be added as desired.
+Our toolchain is primarily targeting iOS tweak development and will contain the following: `llvm`, `clang`, `ldid`, `tapi`, and `cctools-port`, though other projects (from LLVM or a third party) can be added as desired.
 
 **Note:** Unless another target is specified explicitly prior to building (i.e., you want to [cross compile](https://llvm.org/docs/HowToCrossCompileLLVM.html)), the aforementioned tools will be built for use on the host system's [architecture](https://llvm.org/doxygen/classllvm_1_1Triple.html#a547abd13f7a3c063aa72c8192a868154) and [triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple) (e.g., `x86_64` and `x86_64-unknown-linux-gnu` for my machine running [WSL](https://docs.microsoft.com/en-us/windows/wsl/about)).
 
@@ -134,7 +134,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 	git clone https://github.com/tpoechtrager/apple-libtapi
 	mkdir cctools && cd apple-libtapi
 	INSTALLPREFIX="$HOME/cctools/" ./build.sh
-	./install.sh && cd
+	make -C build -j$(nproc --all) install-libtapi install-tapi-headers install-tapi && cd
 
 	git clone https://github.com/tpoechtrager/cctools-port
 	cd cctools-port/cctools
