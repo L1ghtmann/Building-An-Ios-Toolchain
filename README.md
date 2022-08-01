@@ -64,7 +64,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ### The commands:
 
-	git clone https://github.com/apple/llvm-project
+	git clone --depth 1 https://github.com/apple/llvm-project
 	mkdir my-llvm-project && cd llvm-project && mkdir build && cd build
 	cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang \
 		-DLLVM_LINK_LLVM_DYLIB=ON \
