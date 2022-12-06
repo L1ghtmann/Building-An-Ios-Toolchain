@@ -117,14 +117,14 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ### The commands:
 
-	git clone --recursive https://github.com/sbingner/ldid
+	git clone https://github.com/ProcursusTeam/ldid
 	cd ldid
 	make -j$(nproc --all) DESTDIR="$HOME/my-toolchain/" PREFIX="" install
 	cd
 
 ### ldid resources:
 
-* https://github.com/sbingner/ldid
+* https://github.com/ProcursusTeam/ldid
 * https://git.saurik.com/ldid.git
 
 ---
