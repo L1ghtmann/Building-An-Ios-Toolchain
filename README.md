@@ -8,7 +8,7 @@ Arguably the most integral item in one's development environment is the toolchai
 
 ## The expected result
 
-Our toolchain is primarily targeting iOS tweak development and will contain the following: `llvm`, `clang`, `ldid`, `tapi`, and `cctools-port`, though other projects (from LLVM or a third party) can be added as desired.
+Our toolchain is primarily targeting iOS tweak development and will contain the following: `llvm`, `clang`, `ldid`, `(lib)tapi`, and `cctools-port`, though other projects (from LLVM or a third party) can be added as desired.
 
 **Note:** Unless another target is specified explicitly prior to building (i.e., you want to [cross compile](https://llvm.org/docs/HowToCrossCompileLLVM.html)), the aforementioned tools will be built for use on the host system's [architecture](https://llvm.org/doxygen/classllvm_1_1Triple.html#a547abd13f7a3c063aa72c8192a868154) and [triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple) (e.g., `x86_64` and `x86_64-unknown-linux-gnu` for my machine running [WSL](https://docs.microsoft.com/en-us/windows/wsl/about)).
 
@@ -20,15 +20,16 @@ Our toolchain is primarily targeting iOS tweak development and will contain the 
 ### Install necessary dependencies:
 
 	sudo apt install build-essential \
+		autoconf \
+		automake \
 		cmake \
 		coreutils \
 		git \
-		libplist-dev \
 		libssl-dev \
+		libtool \
 		make \
 		pkg-config \
-		python3 \
-		zlib1g-dev
+		python3
 
 **Note:** These dependencies are for Debian-based distros. For other distros, you'll need to determine the equivalent packages.
 
@@ -65,20 +66,23 @@ This is necessary because your other lib and bin paths may be prioritized over t
 ### The commands:
 
 	git clone --depth 1 https://github.com/apple/llvm-project
-	mkdir my-llvm-project && cd llvm-project && mkdir build && cd build
+	cd llvm-project && mkdir build && cd build
 	cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang \
 		-DLLVM_LINK_LLVM_DYLIB=ON \
+		-DLLVM_ENABLE_LIBXML2=OFF \
+		-DLLVM_ENABLE_ZLIB=OFF \
 		-DLLVM_ENABLE_Z3_SOLVER=OFF \
 		-DLLVM_ENABLE_BINDINGS=OFF \
 		-DLLVM_ENABLE_WARNINGS=OFF \
 		-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+		-DLLVM_INCLUDE_TESTS=OFF \
+		-DCLANG_INCLUDE_TESTS=OFF \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
-		-DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" \
+		-DCMAKE_INSTALL_PREFIX="$HOME/my-toolchain/" \
 		../llvm
 	make -j$(nproc --all) install
-	cd && mv $HOME/my-llvm-project/* $HOME/my-toolchain/
 
-### The flags explained:
+### Notes:
 
 `-G "Unix Makefiles"` tells CMake to use the Makefile generator. [From Wikipedia](https://en.wikipedia.org/wiki/CMake): *"CMake is not a build system but rather it generates another system's build files."*
 
@@ -86,7 +90,11 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 `-DLLVM_LINK_LLVM_DYLIB=ON` specifies that we want to build the `libLLVM` shared library and dynamically link it into all the tools we're about to build. This helps shrink the size of our compiler *significantly*.
 
-`-DLLVM_ENABLE_Z3_SOLVER=OFF` specifies that we want to disable the Z3 constraint solver provided by the Clang static analyzer (thus avoiding yet another dependency).
+`-DLLVM_ENABLE_LIBXML2=OFF` specifies that we want to disable the reliance on libxml2 (removes a possible dependency).
+
+`-DLLVM_ENABLE_ZLIB=OFF` specifies that we want to disable the reliance on zlib (removes a possible dependency).
+
+`-DLLVM_ENABLE_Z3_SOLVER=OFF` specifies that we want to disable the Z3 constraint solver provided by the Clang static analyzer (thus removing yet another possible dependency).
 
 `-DLLVM_ENABLE_BINDINGS=OFF` specifies that we don't want to support bindings for other languages (e.g., go and OCaml).
 
@@ -94,9 +102,13 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 `-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64"` specifies that we want our compiler to support the x86, ARM, and AArch64 architecture families. By default, this flag is set to `all` which integrates support (i.e., builds a backend) for AArch64, AMDGPU, ARM, AVR, BPF, Hexagon, Lanai, Mips, MSP430, NVPTX, PowerPC, RISCV, Sparc, SystemZ, WebAssembly, X86, and XCore ([source](https://github.com/apple/llvm-project/blob/0c93705f060d7e0b8932d58c1fd6291dd6a3f5a9/llvm/CMakeLists.txt#L303)) most of which we'll never use. In practice, we only need AArch64 and ARM (64-bit and 32-bit arm respectively), but having support for the x86 family won't hurt and it's the only other architecture set in that list that you're likely to target (for other projects, etc).
 
+`-DLLVM_INCLUDE_TESTS=OFF` specifies that we want to skip generating build targets for LLVM's unit tests.
+
+`-DCLANG_INCLUDE_TESTS=OFF` specifies that we want to skip generating build targets for clang's unit tests.
+
 `-DCMAKE_BUILD_TYPE=MinSizeRel` specifies that we want a release build optimized for size, not speed.
 
-`-DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/"` specifies where we want our compiler to be installed once it's been built.
+`-DCMAKE_INSTALL_PREFIX="$HOME/my-toolchain/"` specifies where we want our compiler to be installed once it's been built.
 
 ### Clang+LLVM resources:
 
@@ -111,16 +123,49 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ---
 
-## 3. Build ldid
+## 3. Build libplist
+
+*libplist is a "library to handle Apple Property List format in binary or XML."* - [libimobiledevice](https://github.com/libimobiledevice)
+
+### The commands:
+
+	git clone --depth=1 https://github.com/libimobiledevice/libplist
+	mkdir -p $HOME/libplist && cd libplist
+	./autogen.sh --prefix="$HOME/libplist" --without-cython
+	make -j$(nproc --all) install
+
+### Notes:
+
+- We build libplist from source in order to get an up-to-date version, as the release builds are typically outdated, and in order to get a correctly named static archive.
+  - This archive will be used when linking ldid (see below).
+
+### libplist resources:
+
+* https://github.com/libimobiledevice/libplist
+* https://libimobiledevice.org/
+
+---
+
+## 4. Build ldid
 
 *"ldid is a tool made by [Saurik](https://twitter.com/saurik) for modifying a binary's entitlements easily. ldid also generates SHA1 hashes for the binary signature, so the iPhone kernel executes the binary."* - [iPhoneDevWiki](https://iphonedev.wiki/index.php/Ldid)
 
 ### The commands:
 
-	git clone https://github.com/ProcursusTeam/ldid
+	git clone --depth=1 https://github.com/ProcursusTeam/ldid
 	cd ldid
-	make -j$(nproc --all) DESTDIR="$HOME/my-toolchain/" PREFIX="" install
-	cd
+	make -j$(nproc --all) DESTDIR="$HOME/my-toolchain/" \
+		PREFIX="" \
+		LIBCRYPTO_LIBS="-l:libcrypto.a -lpthread -ldl" \
+		LIBPLIST_INCLUDES="-I$HOME/libplist/include" \
+		LIBPLIST_LIBS="$HOME/libplist/lib/libplist-2.0.a" \
+	install
+
+### Notes:
+
+- We specify that we want to statically link libcrypto and libplist as the versions can vary significantly between systems.
+  - Furthermore, doing so will prevent libplist from having to be installed on the host system as a dependency (hence the additional include path passed).
+- The additional dynamic links to pthread and dl are required on some older systems (e.g., Ubuntu 18.04).
 
 ### ldid resources:
 
@@ -129,46 +174,94 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 ---
 
-## 4. Build cctools-port w/ TAPI support
+## 5. Build lib(tapi)
 
 *"TAPI is a **T**ext-based **A**pplication **P**rogramming **I**nterface. It replaces the Mach-O Dynamic Library Stub files in Apple's SDKs to reduce the SDK size even further."* - [Apple](https://opensource.apple.com/source/tapi/tapi-1000.10.8/Readme.md)
 
-*"[cctools is] a set of essential tools to support development on Mac OS X and Darwin. Conceptually similar to binutils on other platforms."* - [MacPorts](https://ports.macports.org/port/cctools/)
+### The commands:
 
+	git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi
+	mkdir -p $HOME/cctools && cd apple-libtapi
+	mkdir build-tblgens && cd build-tblgens
+	cmake -G "Unix Makefiles" -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+		-DLLVM_INCLUDE_TESTS=OFF \
+		-DLLVM_ENABLE_WARNINGS=OFF \
+		-DCLANG_INCLUDE_TESTS=OFF \
+		-DCMAKE_BUILD_TYPE=Release \
+		../src/llvm
+	make -j$(nproc --all) llvm-tblgen clang-tblgen
+
+	cd ../ && mkdir build-tapi && cd build-tapi
+	cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS="libtapi" \
+		-DLLVM_INCLUDE_TESTS=OFF \
+		-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+		-DLLVM_ENABLE_WARNINGS=OFF \
+		-DTAPI_FULL_VERSION="$(cat $PWD/../VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
+		-DLLVM_TABLEGEN="$PWD/../build-tblgens/bin/llvm-tblgen" \
+		-DCLANG_TABLEGEN="$PWD/../build-tblgens/bin/clang-tblgen" \
+		-DCLANG_TABLEGEN_EXE="$PWD/../build-tblgens/bin/clang-tblgen" \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_CXX_FLAGS="-I$PWD/../src/llvm/projects/clang/include/ -I$PWD/projects/clang/include/" \
+		-DCMAKE_INSTALL_PREFIX="$HOME/cctools/" \
+		../src/llvm
+	make -j$(nproc --all) install-libtapi install-tapi-headers install-tapi
+
+### Notes:
+
+- We first build llvm- and clang-tblgen as they are required for the build.
+- We then build (lib)tapi ourselves instead of relying on the provided build script(s).
+  - By doing this ourselves, we can speed up the build significantly by disabling tests and other undesirable components (e.g., architecture backends).
+  - Since we built the *-tblgen binaries ourselves, we have to explicitly specify their paths.
+
+### (lib)tapi resources:
+
+* https://github.com/tpoechtrager/apple-libtapi#readme
+* https://opensource.apple.com/source/tapi/tapi-1100.0.11/
+
+---
+
+## 6. Build cctools-port with TAPI support
+
+*"[cctools is] a set of essential tools to support development on Mac OS X and Darwin. Conceptually similar to binutils on other platforms."* - [MacPorts](https://ports.macports.org/port/cctools/)
 
 *cctools-port is a port of Apple's cctools and ld64 for Linux and \*BSD* - [Thomas Pöchtrager](https://github.com/tpoechtrager/cctools-port)
 
 ### The commands:
 
-	git clone https://github.com/tpoechtrager/apple-libtapi
-	mkdir cctools && cd apple-libtapi
-	INSTALLPREFIX="$HOME/cctools/" ./build.sh
-	make -C build -j$(nproc --all) install-libtapi install-tapi-headers install-tapi && cd
-
-	git clone https://github.com/tpoechtrager/cctools-port
+	git clone --depth=1 https://github.com/tpoechtrager/cctools-port
 	cd cctools-port/cctools
 	./configure --prefix="$HOME/cctools/" \
 		--target=aarch64-apple-darwin14 \
 		--enable-tapi-support \
 		--with-libtapi="$HOME/cctools/" \
-		--program-transform-name="s/^aarch64-apple-darwin14-//" \
-		CC="$HOME/my-toolchain/bin/clang" \
-		CXX="$HOME/my-toolchain/bin/clang++"
+		--program-prefix="" \
+		CC="$HOME/linux/iphone/bin/clang" \
+		CXX="$HOME/linux/iphone/bin/clang++" \
+		CXXABI_LIB="-l:libc++abi.a" \
+		LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-z,origin"
 	make -j$(nproc --all) install
-	cd && cp -a $HOME/cctools/* $HOME/my-toolchain/
+	cp -a $HOME/cctools/* $HOME/my-toolchain/
 
-### cctools-port/libtapi resources:
+### Notes:
 
-* https://github.com/tpoechtrager/apple-libtapi#readme
+- We specify the target as aarch64 (arm64) as we will use it to build for iOS.
+- We specify the path to (lib)tapi in order to enable support for it.
+- We then point to our newly built clang as Apple's clang is required in order to add arm64e support to LD64.
+- Additionally, we statically link libc++abi as its version can vary significantly between systems.
+- We then tell the linker to adjust the relative library path so the cctools can find (lib)tapi and its resources.
+
+### cctools-port resources:
+
 * https://github.com/tpoechtrager/cctools-port#readme
+* https://opensource.apple.com/source/cctools/
 
 ---
 
-## 5. Final touches
+## 7. Final touches
 
 Uncomment your previously commented out `$LD_LIBRARY_PATH` and/or `$PATH` declarations from your shell's profile and restart your shell.
 
-Remove some or all of the intermediate directories created during the compilation processes (e.g., my-llvm-project) that are no longer useful.
+Remove some or all of the intermediate directories created during the compilation processes (e.g., $HOME/cctools) that are no longer necessary to keep around. The various tool source directories can also be removed if so desired.
 
 Lastly, move the contents of `$HOME/my-toolchain/` to the desired location.
 
