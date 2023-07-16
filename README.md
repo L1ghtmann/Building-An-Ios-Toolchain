@@ -67,7 +67,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 	git clone --depth 1 https://github.com/apple/llvm-project
 	cd llvm-project && mkdir build && cd build
-	cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang \
+	cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" \
 		-DLLVM_LINK_LLVM_DYLIB=ON \
 		-DLLVM_ENABLE_LIBXML2=OFF \
 		-DLLVM_ENABLE_ZLIB=OFF \
@@ -86,7 +86,7 @@ This is necessary because your other lib and bin paths may be prioritized over t
 
 `-G "Unix Makefiles"` tells CMake to use the Makefile generator. [From Wikipedia](https://en.wikipedia.org/wiki/CMake): *"CMake is not a build system but rather it generates another system's build files."*
 
-`-DLLVM_ENABLE_PROJECTS=clang` specifies that we want to build `clang` alongside `llvm` as a sub-project.
+`-DLLVM_ENABLE_PROJECTS=clang;libcxx;libcxxabi` specifies that we want to build `clang` and `libc++` alongside `llvm` as sub-projects.
 
 `-DLLVM_LINK_LLVM_DYLIB=ON` specifies that we want to build the `libLLVM` shared library and dynamically link it into all the tools we're about to build. This helps shrink the size of our compiler *significantly*.
 
